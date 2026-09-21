@@ -3,33 +3,43 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Gamepad2, BarChart3, Trophy } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Get creator name
-  const { data: userData } = await supabase
-    .from('users')
-    .select('nama')
-    .eq('id', user?.id ?? '')
-    .single();
+  let nama = 'Creator';
+  let quizCount = 0;
+  let activeSessionCount = 0;
 
-  // Get quiz count
-  const { count: quizCount } = await supabase
-    .from('quizzes')
-    .select('*', { count: 'exact', head: true })
-    .eq('creator_id', user?.id ?? '');
+  if (user) {
+    // Get creator name
+    const { data: userData } = await supabase
+      .from('users')
+      .select('nama')
+      .eq('id', user.id)
+      .single();
 
-  // Get active session count
-  const { count: activeSessionCount } = await supabase
-    .from('sessions')
-    .select('*, quizzes!inner(creator_id)', { count: 'exact', head: true })
-    .is('waktu_selesai', null)
-    .eq('quizzes.creator_id', user?.id ?? '');
+    nama = userData?.nama ?? 'Creator';
 
-  const nama = userData?.nama ?? 'Creator';
+    // Get quiz count
+    const { count } = await supabase
+      .from('quizzes')
+      .select('*', { count: 'exact', head: true })
+      .eq('creator_id', user.id);
+    quizCount = count ?? 0;
+
+    // Get active session count
+    const { count: sessCount } = await supabase
+      .from('sessions')
+      .select('*, quizzes!inner(creator_id)', { count: 'exact', head: true })
+      .is('waktu_selesai', null)
+      .eq('quizzes.creator_id', user.id);
+    activeSessionCount = sessCount ?? 0;
+  }
 
   return (
     <div className="space-y-8">

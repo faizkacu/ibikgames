@@ -5,6 +5,9 @@ import { Card } from '@/components/ui/Card';
 import { GameCard } from '@/components/game/GameCard';
 import { Plus, Gamepad2 } from 'lucide-react';
 import { EMPTY_MESSAGES } from '@/lib/constants/messages';
+import type { GameType } from '@/types/database';
+
+export const dynamic = 'force-dynamic';
 
 export default async function GamesPage() {
   const supabase = await createClient();
@@ -12,11 +15,23 @@ export default async function GamesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: quizzes } = await supabase
-    .from('quizzes')
-    .select('id, nama_quiz, tipe_game, kode_sesi, is_active, created_at')
-    .eq('creator_id', user?.id ?? '')
-    .order('created_at', { ascending: false });
+  let quizzes: {
+    id: string;
+    nama_quiz: string;
+    tipe_game: GameType;
+    kode_sesi: string;
+    is_active: boolean;
+    created_at: string;
+  }[] | null = null;
+
+  if (user) {
+    const { data } = await supabase
+      .from('quizzes')
+      .select('id, nama_quiz, tipe_game, kode_sesi, is_active, created_at')
+      .eq('creator_id', user.id)
+      .order('created_at', { ascending: false });
+    quizzes = data;
+  }
 
   return (
     <div className="space-y-6">

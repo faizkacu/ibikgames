@@ -15,21 +15,54 @@ interface GameDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function GameDetailPage({ params }: GameDetailPageProps) {
   const { id } = await params;
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch quiz with questions
-  const { data: quiz } = await supabase
-    .from('quizzes')
-    .select('*, questions(*)')
-    .eq('id', id)
-    .eq('creator_id', user?.id ?? '')
-    .single();
+  let quiz: {
+    id: string;
+    nama_quiz: string;
+    tipe_game: string;
+    kode_sesi: string;
+    is_active: boolean;
+    created_at: string;
+    questions: {
+      id: string;
+      teks_soal: string;
+      pilihan_kiri: string | null;
+      pilihan_kanan: string | null;
+      sisi_benar: string | null;
+      urutan: number;
+    }[];
+  } | null = null;
+  let hasActiveSession = false;
+  let activeSessionId: string | null = null;
+
+  if (user) {
+    const { data } = await supabase
+      .from('quizzes')
+      .select('*, questions(*)')
+      .eq('id', id)
+      .eq('creator_id', user.id)
+      .single();
+    quiz = data;
+
+    if (quiz) {
+      const { data: activeSession } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('quiz_id', quiz.id)
+        .is('waktu_selesai', null)
+        .maybeSingle();
+      hasActiveSession = !!activeSession;
+      activeSessionId = activeSession?.id ?? null;
+    }
+  }
 
   if (!quiz) {
     notFound();
@@ -40,16 +73,6 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
   const sortedQuestions = (quiz.questions ?? []).sort(
     (a: { urutan: number }, b: { urutan: number }) => a.urutan - b.urutan
   );
-
-  // Check for active session
-  const { data: activeSession } = await supabase
-    .from('sessions')
-    .select('id')
-    .eq('quiz_id', quiz.id)
-    .is('waktu_selesai', null)
-    .maybeSingle();
-
-  const hasActiveSession = !!activeSession;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -90,8 +113,8 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
             {!hasActiveSession && (
               <StartSessionButton quizId={quiz.id} />
             )}
-            {hasActiveSession && activeSession && (
-              <Link href={`/play/${activeSession.id}`}>
+            {hasActiveSession && activeSessionId && (
+              <Link href={`/play/${activeSessionId}`}>
                 <Button variant="primary" icon={Play}>
                   Lihat Sesi Aktif
                 </Button>
@@ -123,15 +146,7 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
           </Card>
         ) : (
           <div className="space-y-3">
-            {sortedQuestions.map(
-              (q: {
-                id: string;
-                teks_soal: string;
-                pilihan_kiri: string | null;
-                pilihan_kanan: string | null;
-                sisi_benar: string | null;
-                urutan: number;
-              }) => (
+            {sortedQuestions.map((q) => (
                 <Card key={q.id} padding="sm">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
