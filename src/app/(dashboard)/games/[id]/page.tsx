@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SessionCode } from '@/components/game/SessionCode';
@@ -114,16 +113,20 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
               <StartSessionButton quizId={quiz.id} />
             )}
             {hasActiveSession && activeSessionId && (
-              <Link href={`/play/${activeSessionId}`}>
-                <Button variant="primary" icon={Play}>
-                  Lihat Sesi Aktif
-                </Button>
+              <Link
+                href={`/play/${activeSessionId}`}
+                className="inline-flex items-center justify-center gap-2 rounded-[12px] font-medium transition-all duration-200 bg-primary text-secondary hover:opacity-90 px-4 py-2 text-base h-10"
+              >
+                <Play className="w-4 h-4" />
+                Lihat Sesi Aktif
               </Link>
             )}
-            <Link href={`/games/${quiz.id}/edit`}>
-              <Button variant="outline" icon={Pencil}>
-                Edit
-              </Button>
+            <Link
+              href={`/games/${quiz.id}/edit`}
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] font-medium transition-all duration-200 bg-transparent text-primary border border-primary hover:bg-primary hover:text-secondary px-4 py-2 text-base h-10"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
             </Link>
             <DeleteQuizButton
               quizId={quiz.id}

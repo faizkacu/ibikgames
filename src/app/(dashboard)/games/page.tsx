@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { GameCard } from '@/components/game/GameCard';
 import { Plus, Gamepad2 } from 'lucide-react';
@@ -43,10 +42,12 @@ export default async function GamesPage() {
             Kelola semua quiz yang telah Anda buat.
           </p>
         </div>
-        <Link href="/games/new">
-          <Button variant="primary" icon={Plus}>
-            Buat Quiz
-          </Button>
+        <Link
+          href="/games/new"
+          className="inline-flex items-center justify-center gap-2 rounded-[12px] font-medium transition-all duration-200 cursor-pointer select-none bg-primary text-secondary hover:opacity-90 px-4 py-2 text-base h-10"
+        >
+          <Plus className="w-4 h-4" />
+          Buat Quiz
         </Link>
       </div>
 
@@ -56,10 +57,12 @@ export default async function GamesPage() {
           <div className="text-center py-12">
             <Gamepad2 className="w-12 h-12 text-muted mx-auto mb-4" />
             <p className="text-muted">{EMPTY_MESSAGES.BELUM_ADA_QUIZ}</p>
-            <Link href="/games/new" className="mt-4 inline-block">
-              <Button variant="primary" icon={Plus}>
-                Buat Quiz Pertama
-              </Button>
+            <Link
+              href="/games/new"
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-[12px] font-medium transition-all duration-200 cursor-pointer select-none bg-primary text-secondary hover:opacity-90 px-4 py-2 text-base h-10"
+            >
+              <Plus className="w-4 h-4" />
+              Buat Quiz Pertama
             </Link>
           </div>
         </Card>
