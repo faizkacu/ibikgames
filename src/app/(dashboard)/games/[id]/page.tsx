@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SessionCode } from '@/components/game/SessionCode';
 import { DeleteQuizButton } from './DeleteQuizButton';
-import { Pencil, Play, ArrowLeft } from 'lucide-react';
+import { Pencil, Play, ArrowLeft, BarChart3 } from 'lucide-react';
 import { GAME_TYPE_LABELS } from '@/lib/constants/game-types';
 import { StartSessionButton } from '@/components/game/StartSessionButton';
 import type { GameType } from '@/types/database';
@@ -36,6 +36,7 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
       pilihan_kiri: string | null;
       pilihan_kanan: string | null;
       sisi_benar: string | null;
+      jawaban_benar: string | null;
       urutan: number;
     }[];
   } | null = null;
@@ -128,6 +129,13 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
               <Pencil className="w-4 h-4" />
               Edit
             </Link>
+            <Link
+              href={`/games/${quiz.id}/statistics`}
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] font-medium transition-all duration-200 bg-transparent text-primary border border-border hover:border-primary hover:bg-surface px-4 py-2 text-base h-10"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Statistik
+            </Link>
             <DeleteQuizButton
               quizId={quiz.id}
               isActive={quiz.is_active}
@@ -158,26 +166,34 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
                       </span>
                       <p className="font-medium text-primary">{q.teks_soal}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 ml-8">
-                      <div
-                        className={`px-3 py-2 rounded-sm text-sm ${
-                          q.sisi_benar === 'kiri'
-                            ? 'bg-correct-light text-correct'
-                            : 'bg-surface text-muted'
-                        }`}
-                      >
-                        Kiri: {q.pilihan_kiri}
+                    {quiz.tipe_game === 'clear_the_box' ? (
+                      <div className="ml-8">
+                        <div className="px-3 py-2 rounded-sm text-sm bg-correct-light text-correct">
+                          Jawaban: {q.jawaban_benar}
+                        </div>
                       </div>
-                      <div
-                        className={`px-3 py-2 rounded-sm text-sm ${
-                          q.sisi_benar === 'kanan'
-                            ? 'bg-correct-light text-correct'
-                            : 'bg-surface text-muted'
-                        }`}
-                      >
-                        Kanan: {q.pilihan_kanan}
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 ml-8">
+                        <div
+                          className={`px-3 py-2 rounded-sm text-sm ${
+                            q.sisi_benar === 'kiri'
+                              ? 'bg-correct-light text-correct'
+                              : 'bg-surface text-muted'
+                          }`}
+                        >
+                          Kiri: {q.pilihan_kiri}
+                        </div>
+                        <div
+                          className={`px-3 py-2 rounded-sm text-sm ${
+                            q.sisi_benar === 'kanan'
+                              ? 'bg-correct-light text-correct'
+                              : 'bg-surface text-muted'
+                          }`}
+                        >
+                          Kanan: {q.pilihan_kanan}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </Card>
               )

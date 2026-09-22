@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { QuestionEditor } from '@/components/game/QuestionEditor';
+import type { QuestionData } from '@/components/game/QuestionEditor';
 import { Plus, Save } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -14,23 +15,18 @@ import {
   LOADING_MESSAGES,
   PLACEHOLDER_MESSAGES,
 } from '@/lib/constants/messages';
-import type { SideType } from '@/types/database';
-
-interface QuestionData {
-  teks_soal: string;
-  pilihan_kiri: string;
-  pilihan_kanan: string;
-  sisi_benar: SideType;
-}
+import type { GameType } from '@/types/database';
 
 interface EditQuizFormProps {
   quizId: string;
+  tipeGame: GameType;
   initialNamaQuiz: string;
   initialQuestions: QuestionData[];
 }
 
 export function EditQuizForm({
   quizId,
+  tipeGame,
   initialNamaQuiz,
   initialQuestions,
 }: EditQuizFormProps) {
@@ -39,7 +35,7 @@ export function EditQuizForm({
   const [questions, setQuestions] = useState<QuestionData[]>(
     initialQuestions.length > 0
       ? initialQuestions
-      : [{ teks_soal: '', pilihan_kiri: '', pilihan_kanan: '', sisi_benar: 'kiri' }]
+      : [{ teks_soal: '', pilihan_kiri: '', pilihan_kanan: '', sisi_benar: 'kiri', jawaban_benar: '' }]
   );
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ nama_quiz?: string }>({});
@@ -47,6 +43,16 @@ export function EditQuizForm({
   const validate = () => {
     const newErrors: typeof errors = {};
     if (!namaQuiz.trim()) newErrors.nama_quiz = ERROR_MESSAGES.FIELD_WAJIB;
+    // Validate CTB questions have jawaban_benar
+    if (tipeGame === 'clear_the_box') {
+      const hasEmptyAnswer = questions.some(
+        (q) => q.teks_soal.trim() && !q.jawaban_benar.trim()
+      );
+      if (hasEmptyAnswer) {
+        toast.error('Semua soal harus memiliki jawaban benar.');
+        return false;
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -54,7 +60,7 @@ export function EditQuizForm({
   const addQuestion = () => {
     setQuestions([
       ...questions,
-      { teks_soal: '', pilihan_kiri: '', pilihan_kanan: '', sisi_benar: 'kiri' },
+      { teks_soal: '', pilihan_kiri: '', pilihan_kanan: '', sisi_benar: 'kiri', jawaban_benar: '' },
     ]);
   };
 
@@ -102,14 +108,28 @@ export function EditQuizForm({
       // Insert new questions
       const validQuestions = questions.filter((q) => q.teks_soal.trim());
       if (validQuestions.length > 0) {
-        const questionsToInsert = validQuestions.map((q, i) => ({
-          quiz_id: quizId,
-          teks_soal: q.teks_soal.trim(),
-          pilihan_kiri: q.pilihan_kiri.trim(),
-          pilihan_kanan: q.pilihan_kanan.trim(),
-          sisi_benar: q.sisi_benar,
-          urutan: i + 1,
-        }));
+        const questionsToInsert = validQuestions.map((q, i) => {
+          if (tipeGame === 'clear_the_box') {
+            return {
+              quiz_id: quizId,
+              teks_soal: q.teks_soal.trim(),
+              pilihan_kiri: null,
+              pilihan_kanan: null,
+              sisi_benar: null,
+              jawaban_benar: q.jawaban_benar.trim(),
+              urutan: i + 1,
+            };
+          }
+          return {
+            quiz_id: quizId,
+            teks_soal: q.teks_soal.trim(),
+            pilihan_kiri: q.pilihan_kiri.trim(),
+            pilihan_kanan: q.pilihan_kanan.trim(),
+            sisi_benar: q.sisi_benar,
+            jawaban_benar: null,
+            urutan: i + 1,
+          };
+        });
 
         const { error: insertError } = await supabase
           .from('questions')
@@ -166,6 +186,7 @@ export function EditQuizForm({
             onChange={(data) => updateQuestion(index, data)}
             onRemove={() => removeQuestion(index)}
             canRemove={questions.length > 1}
+            tipeGame={tipeGame}
           />
         ))}
       </div>

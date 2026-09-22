@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { QuestionEditor } from './QuestionEditor';
+import type { QuestionData } from './QuestionEditor';
 import { Plus, Save } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -14,14 +16,7 @@ import {
   LOADING_MESSAGES,
   PLACEHOLDER_MESSAGES,
 } from '@/lib/constants/messages';
-import type { SideType, GameType } from '@/types/database';
-
-interface QuestionData {
-  teks_soal: string;
-  pilihan_kiri: string;
-  pilihan_kanan: string;
-  sisi_benar: SideType;
-}
+import type { GameType } from '@/types/database';
 
 interface QuizFormProps {
   mode?: 'create' | 'edit';
@@ -33,18 +28,26 @@ interface QuizFormProps {
   };
 }
 
+const GAME_TYPE_OPTIONS = [
+  { value: 'choose_your_side', label: 'Choose Your Side' },
+  { value: 'clear_the_box', label: 'Clear The Box' },
+];
+
+function getDefaultQuestion(tipeGame: GameType): QuestionData {
+  if (tipeGame === 'clear_the_box') {
+    return { teks_soal: '', pilihan_kiri: '', pilihan_kanan: '', sisi_benar: 'kiri', jawaban_benar: '' };
+  }
+  return { teks_soal: '', pilihan_kiri: '', pilihan_kanan: '', sisi_benar: 'kiri', jawaban_benar: '' };
+}
+
 export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
   const router = useRouter();
   const [namaQuiz, setNamaQuiz] = useState(initialData?.nama_quiz ?? '');
+  const [tipeGame, setTipeGame] = useState<GameType>(
+    initialData?.tipe_game ?? 'choose_your_side'
+  );
   const [questions, setQuestions] = useState<QuestionData[]>(
-    initialData?.questions ?? [
-      {
-        teks_soal: '',
-        pilihan_kiri: '',
-        pilihan_kanan: '',
-        sisi_benar: 'kiri',
-      },
-    ]
+    initialData?.questions ?? [getDefaultQuestion('choose_your_side')]
   );
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ nama_quiz?: string }>({});
@@ -54,20 +57,22 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
     if (!namaQuiz.trim()) {
       newErrors.nama_quiz = ERROR_MESSAGES.FIELD_WAJIB;
     }
+    // Validate CTB questions have jawaban_benar
+    if (tipeGame === 'clear_the_box') {
+      const hasEmptyAnswer = questions.some(
+        (q) => q.teks_soal.trim() && !q.jawaban_benar.trim()
+      );
+      if (hasEmptyAnswer) {
+        toast.error('Semua soal harus memiliki jawaban benar.');
+        return false;
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const addQuestion = () => {
-    setQuestions([
-      ...questions,
-      {
-        teks_soal: '',
-        pilihan_kiri: '',
-        pilihan_kanan: '',
-        sisi_benar: 'kiri',
-      },
-    ]);
+    setQuestions([...questions, getDefaultQuestion(tipeGame)]);
   };
 
   const removeQuestion = (index: number) => {
@@ -79,6 +84,13 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
     const updated = [...questions];
     updated[index] = data;
     setQuestions(updated);
+  };
+
+  const handleTipeGameChange = (value: string) => {
+    const newType = value as GameType;
+    setTipeGame(newType);
+    // Reset questions to match new type
+    setQuestions([getDefaultQuestion(newType)]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +123,7 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
         .insert({
           creator_id: user.id,
           nama_quiz: namaQuiz.trim(),
-          tipe_game: 'choose_your_side',
+          tipe_game: tipeGame,
           kode_sesi: codeData,
         })
         .select('id')
@@ -125,14 +137,28 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
       // Create questions
       const validQuestions = questions.filter((q) => q.teks_soal.trim());
       if (validQuestions.length > 0) {
-        const questionsToInsert = validQuestions.map((q, i) => ({
-          quiz_id: quiz.id,
-          teks_soal: q.teks_soal.trim(),
-          pilihan_kiri: q.pilihan_kiri.trim(),
-          pilihan_kanan: q.pilihan_kanan.trim(),
-          sisi_benar: q.sisi_benar,
-          urutan: i + 1,
-        }));
+        const questionsToInsert = validQuestions.map((q, i) => {
+          if (tipeGame === 'clear_the_box') {
+            return {
+              quiz_id: quiz.id,
+              teks_soal: q.teks_soal.trim(),
+              pilihan_kiri: null,
+              pilihan_kanan: null,
+              sisi_benar: null,
+              jawaban_benar: q.jawaban_benar.trim(),
+              urutan: i + 1,
+            };
+          }
+          return {
+            quiz_id: quiz.id,
+            teks_soal: q.teks_soal.trim(),
+            pilihan_kiri: q.pilihan_kiri.trim(),
+            pilihan_kanan: q.pilihan_kanan.trim(),
+            sisi_benar: q.sisi_benar,
+            jawaban_benar: null,
+            urutan: i + 1,
+          };
+        });
 
         const { error: questionsError } = await supabase
           .from('questions')
@@ -166,6 +192,17 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
         required
       />
 
+      {/* Game Type Selector */}
+      {mode === 'create' && (
+        <Select
+          label="Tipe Game"
+          options={GAME_TYPE_OPTIONS}
+          value={tipeGame}
+          onChange={(e) => handleTipeGameChange(e.target.value)}
+          placeholder="Pilih tipe game..."
+        />
+      )}
+
       {/* Questions */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -191,6 +228,7 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
             onChange={(data) => updateQuestion(index, data)}
             onRemove={() => removeQuestion(index)}
             canRemove={questions.length > 1}
+            tipeGame={tipeGame}
           />
         ))}
       </div>

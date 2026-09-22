@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { EditQuizForm } from './EditQuizForm';
 import { ArrowLeft } from 'lucide-react';
+import type { GameType } from '@/types/database';
 
 interface EditGamePageProps {
   params: Promise<{ id: string }>;
@@ -28,6 +29,7 @@ export default async function EditGamePage({ params }: EditGamePageProps) {
     notFound();
   }
 
+  const tipeGame = quiz.tipe_game as GameType;
   const sortedQuestions = (quiz.questions ?? []).sort(
     (a: { urutan: number }, b: { urutan: number }) => a.urutan - b.urutan
   );
@@ -50,6 +52,7 @@ export default async function EditGamePage({ params }: EditGamePageProps) {
       <Card>
         <EditQuizForm
           quizId={quiz.id}
+          tipeGame={tipeGame}
           initialNamaQuiz={quiz.nama_quiz}
           initialQuestions={sortedQuestions.map(
             (q: {
@@ -57,11 +60,13 @@ export default async function EditGamePage({ params }: EditGamePageProps) {
               pilihan_kiri: string | null;
               pilihan_kanan: string | null;
               sisi_benar: string | null;
+              jawaban_benar: string | null;
             }) => ({
               teks_soal: q.teks_soal,
               pilihan_kiri: q.pilihan_kiri ?? '',
               pilihan_kanan: q.pilihan_kanan ?? '',
               sisi_benar: (q.sisi_benar ?? 'kiri') as 'kiri' | 'kanan',
+              jawaban_benar: q.jawaban_benar ?? '',
             })
           )}
         />

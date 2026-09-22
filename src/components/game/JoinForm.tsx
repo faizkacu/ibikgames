@@ -89,7 +89,7 @@ export function JoinForm() {
             })
           );
         }
-        router.push(`/play/${session.id}`);
+        router.push(`/game/${session.id}`);
         return;
       }
 

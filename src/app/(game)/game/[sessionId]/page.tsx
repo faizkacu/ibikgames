@@ -4,14 +4,18 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { CYSPesertaView } from '@/components/choose-your-side/CYSPesertaView';
+import { CTBPesertaView } from '@/components/clear-the-box/CTBPesertaView';
 import { Loading } from '@/components/ui/Loading';
+import type { GameType } from '@/types/database';
 
 export default function PesertaGamePage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
   const [quizId, setQuizId] = useState<string>('');
+  const [tipeGame, setTipeGame] = useState<GameType | null>(null);
   const [nama, setNama] = useState<string>('');
+  const [participantId, setParticipantId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
@@ -46,7 +50,7 @@ export default function PesertaGamePage() {
         // Get session and quiz info
         const { data: session } = await supabase
           .from('sessions')
-          .select('quiz_id, waktu_selesai')
+          .select('quiz_id, waktu_selesai, quizzes!inner(tipe_game)')
           .eq('id', sessionId)
           .single();
 
@@ -62,7 +66,28 @@ export default function PesertaGamePage() {
           return;
         }
 
+        const gameType = (session.quizzes as unknown as { tipe_game: GameType }).tipe_game;
+
+        // For CTB, get participant ID
+        if (gameType === 'clear_the_box') {
+          const { data: participantData } = await supabase
+            .from('participants')
+            .select('id')
+            .eq('session_id', sessionId)
+            .eq('nama', participant.nama)
+            .single();
+
+          if (participantData) {
+            setParticipantId(participantData.id);
+          } else {
+            setError('Data peserta tidak ditemukan. Silakan join ulang.');
+            setLoading(false);
+            return;
+          }
+        }
+
         setQuizId(session.quiz_id);
+        setTipeGame(gameType);
         setNama(participant.nama);
         setLoading(false);
       } catch {
@@ -95,6 +120,17 @@ export default function PesertaGamePage() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (tipeGame === 'clear_the_box' && participantId) {
+    return (
+      <CTBPesertaView
+        sessionId={sessionId}
+        quizId={quizId}
+        participantId={participantId}
+        nama={nama}
+      />
     );
   }
 
