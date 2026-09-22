@@ -123,7 +123,7 @@ export function JoinForm() {
       }
 
       toast.success(SUCCESS_MESSAGES.BERHASIL_JOIN);
-      router.push(`/play/${session.id}`);
+      router.push(`/game/${session.id}`);
     } catch {
       toast.error(ERROR_MESSAGES.TERJADI_KESALAHAN);
     } finally {

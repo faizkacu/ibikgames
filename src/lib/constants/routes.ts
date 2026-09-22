@@ -10,5 +10,6 @@ export const ROUTES = {
   GAME_EDIT: (id: string) => `/games/${id}/edit`,
   GAME_STATISTICS: (id: string) => `/games/${id}/statistics`,
   PLAY: (sessionId: string) => `/play/${sessionId}`,
+  GAME_PLAY: (sessionId: string) => `/game/${sessionId}`,
   TEAM: (sessionId: string) => `/team/${sessionId}`,
 } as const;
