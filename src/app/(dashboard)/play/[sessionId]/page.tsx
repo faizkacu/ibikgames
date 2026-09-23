@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { CYSCreatorView } from '@/components/choose-your-side/CYSCreatorView';
 import { CTBCreatorView } from '@/components/clear-the-box/CTBCreatorView';
+import { PTSCreatorView } from '@/components/pull-the-string/PTSCreatorView';
 import { Loading } from '@/components/ui/Loading';
 import type { GameType } from '@/types/database';
 
@@ -70,6 +71,10 @@ export default function CreatorPlayPage() {
 
   if (tipeGame === 'clear_the_box') {
     return <CTBCreatorView sessionId={sessionId} quizId={quizId} />;
+  }
+
+  if (tipeGame === 'pull_the_string') {
+    return <PTSCreatorView sessionId={sessionId} quizId={quizId} />;
   }
 
   return <CYSCreatorView sessionId={sessionId} quizId={quizId} />;

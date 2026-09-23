@@ -43,8 +43,8 @@ export function EditQuizForm({
   const validate = () => {
     const newErrors: typeof errors = {};
     if (!namaQuiz.trim()) newErrors.nama_quiz = ERROR_MESSAGES.FIELD_WAJIB;
-    // Validate CTB questions have jawaban_benar
-    if (tipeGame === 'clear_the_box') {
+    // Validate CTB/PTS questions have jawaban_benar
+    if (tipeGame === 'clear_the_box' || tipeGame === 'pull_the_string') {
       const hasEmptyAnswer = questions.some(
         (q) => q.teks_soal.trim() && !q.jawaban_benar.trim()
       );
@@ -109,7 +109,7 @@ export function EditQuizForm({
       const validQuestions = questions.filter((q) => q.teks_soal.trim());
       if (validQuestions.length > 0) {
         const questionsToInsert = validQuestions.map((q, i) => {
-          if (tipeGame === 'clear_the_box') {
+          if (tipeGame === 'clear_the_box' || tipeGame === 'pull_the_string') {
             return {
               quiz_id: quizId,
               teks_soal: q.teks_soal.trim(),

@@ -1,4 +1,4 @@
-import type { Session, Participant } from './database';
+import type { Session, Participant, TeamType } from './database';
 
 export interface SessionWithQuiz extends Session {
   quiz: {
@@ -13,6 +13,7 @@ export interface ParticipantIdentifier {
   kodeSesi: string;
   nama: string;
   sessionId: string;
+  tim?: TeamType | null;
 }
 
 export interface JoinValidationResult {

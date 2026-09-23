@@ -70,6 +70,12 @@ export default async function StatisticsPage({ params }: StatisticsPageProps) {
     waktuMulai: string;
     waktuSelesai: string;
     durasi: string;
+    isPTS: boolean;
+    matchResult?: {
+      skorTimA: number;
+      skorTimB: number;
+      timPemenang: string;
+    };
     participants: Array<{
       nama: string;
       skor: number;
@@ -78,9 +84,43 @@ export default async function StatisticsPage({ params }: StatisticsPageProps) {
     }>;
   }> = [];
 
+  const isPTS = quiz.tipe_game === 'pull_the_string';
+
   if (sessions) {
     for (const session of sessions) {
-      // Get participants for this session
+      const durasiStr = formatDuration(
+        (new Date(session.waktu_selesai!).getTime() -
+          new Date(session.waktu_mulai).getTime()) /
+          1000
+      );
+
+      // For PTS, get match_results
+      if (isPTS) {
+        const { data: matchResult } = await supabase
+          .from('match_results')
+          .select('skor_tim_a, skor_tim_b, tim_pemenang')
+          .eq('session_id', session.id)
+          .maybeSingle();
+
+        sessionStats.push({
+          sessionId: session.id,
+          waktuMulai: session.waktu_mulai,
+          waktuSelesai: session.waktu_selesai!,
+          durasi: durasiStr,
+          isPTS: true,
+          matchResult: matchResult
+            ? {
+                skorTimA: matchResult.skor_tim_a,
+                skorTimB: matchResult.skor_tim_b,
+                timPemenang: matchResult.tim_pemenang,
+              }
+            : undefined,
+          participants: [],
+        });
+        continue;
+      }
+
+      // For CYS/CTB, get participants and answers
       const { data: participants } = await supabase
         .from('participants')
         .select('id, nama, joined_at')
@@ -96,6 +136,7 @@ export default async function StatisticsPage({ params }: StatisticsPageProps) {
               new Date(session.waktu_mulai).getTime()) /
               1000
           ),
+          isPTS: false,
           participants: [],
         });
         continue;
@@ -151,6 +192,7 @@ export default async function StatisticsPage({ params }: StatisticsPageProps) {
             new Date(session.waktu_mulai).getTime()) /
             1000
         ),
+        isPTS: false,
         participants: participantStats,
       });
     }
@@ -206,7 +248,38 @@ export default async function StatisticsPage({ params }: StatisticsPageProps) {
                     {new Date(stat.waktuSelesai).toLocaleString('id-ID')}
                   </p>
                 </div>
-                <StatisticsTable participants={stat.participants} />
+
+                {/* PTS Match Result */}
+                {stat.isPTS && stat.matchResult && (
+                  <div className="bg-surface rounded-[12px] p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-center flex-1">
+                        <p className="text-sm text-muted">Tim A</p>
+                        <p className={`text-2xl font-bold ${stat.matchResult.timPemenang === 'tim_a' ? 'text-correct' : 'text-primary'}`}>
+                          {stat.matchResult.skorTimA}
+                        </p>
+                        {stat.matchResult.timPemenang === 'tim_a' && (
+                          <Badge variant="correct" size="sm">Pemenang</Badge>
+                        )}
+                      </div>
+                      <span className="text-xl font-bold text-muted">vs</span>
+                      <div className="text-center flex-1">
+                        <p className="text-sm text-muted">Tim B</p>
+                        <p className={`text-2xl font-bold ${stat.matchResult.timPemenang === 'tim_b' ? 'text-correct' : 'text-primary'}`}>
+                          {stat.matchResult.skorTimB}
+                        </p>
+                        {stat.matchResult.timPemenang === 'tim_b' && (
+                          <Badge variant="correct" size="sm">Pemenang</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CYS/CTB Participant Stats */}
+                {!stat.isPTS && (
+                  <StatisticsTable participants={stat.participants} />
+                )}
               </div>
             </Card>
           ))}

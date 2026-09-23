@@ -31,6 +31,7 @@ interface QuizFormProps {
 const GAME_TYPE_OPTIONS = [
   { value: 'choose_your_side', label: 'Choose Your Side' },
   { value: 'clear_the_box', label: 'Clear The Box' },
+  { value: 'pull_the_string', label: 'Pull The String' },
 ];
 
 function getDefaultQuestion(tipeGame: GameType): QuestionData {
@@ -57,8 +58,8 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
     if (!namaQuiz.trim()) {
       newErrors.nama_quiz = ERROR_MESSAGES.FIELD_WAJIB;
     }
-    // Validate CTB questions have jawaban_benar
-    if (tipeGame === 'clear_the_box') {
+    // Validate CTB/PTS questions have jawaban_benar
+    if (tipeGame === 'clear_the_box' || tipeGame === 'pull_the_string') {
       const hasEmptyAnswer = questions.some(
         (q) => q.teks_soal.trim() && !q.jawaban_benar.trim()
       );
@@ -109,12 +110,34 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
         return;
       }
 
-      // Generate session code
+      // Generate session code(s)
       const { data: codeData, error: codeError } =
         await supabase.rpc('generate_session_code');
       if (codeError || !codeData) {
         toast.error(ERROR_MESSAGES.TERJADI_KESALAHAN);
         return;
+      }
+
+      let kodeSesiTimB: string | null = null;
+      if (tipeGame === 'pull_the_string') {
+        const { data: codeDataB, error: codeErrorB } =
+          await supabase.rpc('generate_session_code');
+        if (codeErrorB || !codeDataB) {
+          toast.error(ERROR_MESSAGES.TERJADI_KESALAHAN);
+          return;
+        }
+        // Ensure codes are different
+        if (codeDataB === codeData) {
+          const { data: codeRetry, error: codeRetryError } =
+            await supabase.rpc('generate_session_code');
+          if (codeRetryError || !codeRetry) {
+            toast.error(ERROR_MESSAGES.TERJADI_KESALAHAN);
+            return;
+          }
+          kodeSesiTimB = codeRetry;
+        } else {
+          kodeSesiTimB = codeDataB;
+        }
       }
 
       // Create quiz
@@ -125,6 +148,7 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
           nama_quiz: namaQuiz.trim(),
           tipe_game: tipeGame,
           kode_sesi: codeData,
+          kode_sesi_tim_b: kodeSesiTimB,
         })
         .select('id')
         .single();
@@ -138,7 +162,7 @@ export function QuizForm({ mode = 'create', initialData }: QuizFormProps) {
       const validQuestions = questions.filter((q) => q.teks_soal.trim());
       if (validQuestions.length > 0) {
         const questionsToInsert = validQuestions.map((q, i) => {
-          if (tipeGame === 'clear_the_box') {
+          if (tipeGame === 'clear_the_box' || tipeGame === 'pull_the_string') {
             return {
               quiz_id: quiz.id,
               teks_soal: q.teks_soal.trim(),

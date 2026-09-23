@@ -28,6 +28,7 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
     nama_quiz: string;
     tipe_game: string;
     kode_sesi: string;
+    kode_sesi_tim_b: string | null;
     is_active: boolean;
     created_at: string;
     questions: {
@@ -104,8 +105,23 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
 
           {/* Session Code */}
           <div>
-            <p className="text-sm text-muted mb-1">Kode Sesi</p>
-            <SessionCode code={quiz.kode_sesi} />
+            {quiz.tipe_game === 'pull_the_string' && quiz.kode_sesi_tim_b ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted mb-1">Kode Sesi Tim A</p>
+                  <SessionCode code={quiz.kode_sesi} />
+                </div>
+                <div>
+                  <p className="text-sm text-muted mb-1">Kode Sesi Tim B</p>
+                  <SessionCode code={quiz.kode_sesi_tim_b} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-muted mb-1">Kode Sesi</p>
+                <SessionCode code={quiz.kode_sesi} />
+              </>
+            )}
           </div>
 
           {/* Actions */}
@@ -166,7 +182,7 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
                       </span>
                       <p className="font-medium text-primary">{q.teks_soal}</p>
                     </div>
-                    {quiz.tipe_game === 'clear_the_box' ? (
+                    {quiz.tipe_game === 'clear_the_box' || quiz.tipe_game === 'pull_the_string' ? (
                       <div className="ml-8">
                         <div className="px-3 py-2 rounded-sm text-sm bg-correct-light text-correct">
                           Jawaban: {q.jawaban_benar}
